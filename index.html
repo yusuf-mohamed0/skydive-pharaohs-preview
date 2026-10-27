@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta name="color-scheme" content="dark"/>
+<meta name="color-scheme" content="dark light"/>
 <title>Skydive Pharaohs — Flight to memory · design preview by Traffic Digital Solutions</title>
 <style>
 /* ==========================================================================
@@ -50,6 +50,42 @@
   --radius: 14px;
   --radius-lg: 20px;
   --shadow: 0 24px 60px rgba(4, 8, 16, 0.55);
+}
+
+/* Light palette retains photography, with a pale wash for readable dark text. */
+html[data-theme="light"] {
+  --ink: #14213A;
+  --ink-dim: #334963;
+  --ink-faint: #4D6178;
+  --white: #14213A;
+  --sky-400: #17658A;
+  --sky-200: #205675;
+  --line: rgba(35, 52, 84, .22);
+  --line-strong: rgba(35, 52, 84, .48);
+  --panel: rgba(255, 255, 255, .94);
+  --panel-2: rgba(247, 251, 255, .96);
+  --danger: #B42318;
+  --shadow: 0 24px 60px rgba(35, 52, 84, .14);
+}
+html[data-theme="light"] body,
+html[data-theme="light"] #sp-app { background: #EDF4FA; }
+html[data-theme="light"] .bg-scrim { background: rgba(239, 247, 253, .90); }
+html[data-theme="light"] .bg-gradient { background: linear-gradient(145deg, #F4F9FD, #D7E9F5); }
+html[data-theme="light"] .film--vignette { opacity: .08; }
+html[data-theme="light"] :is(.hud-top, .altimeter, .hud-bottom) { background: rgba(247, 251, 255, .97); }
+html[data-theme="light"] :is(.input, .select, .date-chip, .slot-chip, .opt-row, .chip, .note, .hud-sim, .tgl-box, .ticket) { background: #F8FBFE; }
+html[data-theme="light"] .input::placeholder { color: #63758A; }
+html[data-theme="light"] .date-chip:has(input:checked),
+html[data-theme="light"] .slot-chip:has(input:checked),
+html[data-theme="light"] .tgl:has(input:checked) .tgl-box { background: var(--orange); }
+html[data-theme="light"] .sign-pad { background: #14213A; }
+.demo-fill { display: grid; gap: 8px; margin-block-end: 16px; justify-items: start; }
+.field-error { display: block; color: var(--danger); font-size: 12px; line-height: 1.5; }
+.field-error:not(:empty)::before { content: "! "; font-weight: 800; }
+@media (max-width: 600px) {
+  .hud-tools { gap: 4px !important; }
+  #theme-toggle, #lang-toggle { padding: 8px; font-size: 12px; white-space: nowrap; }
+  .hud-brand { flex-shrink: 1; }
 }
 
 /* ---------- reset ---------- */
@@ -945,6 +981,7 @@ html[dir="rtl"] .ticket-label { letter-spacing: 0.04em; }
       <span class="brand-word" data-i18n="conceptTag">Concept preview · Flight to memory</span>
     </div>
     <div class="hud-tools">
+      <button id="theme-toggle" class="btn btn--ghost btn--lang" type="button" aria-pressed="false" data-i18n="lightTheme">Light mode</button>
       <span class="hud-sim" data-i18n="simTag">Simulated booking · no payment taken</span>
       <button id="lang-toggle" class="btn btn--ghost btn--lang" type="button"
               data-i18n="langToggle" data-i18n-aria="langAria" aria-label="Switch language">العربية</button>
@@ -1191,6 +1228,10 @@ html[dir="rtl"] .ticket-label { letter-spacing: 0.04em; }
         </ul>
 
         <div class="crew-wrap reveal">
+          <div class="demo-fill">
+            <button id="demo-fill" type="button" class="btn btn--outline btn--small" data-i18n="demoFill">Fill with demo data</button>
+            <p class="fineprint" data-i18n="demoFillHint">Fills empty fields with fictional details only. Sign and accept the waiver yourself.</p>
+          </div>
           <div class="crew-list" id="crew-list"></div>
           <div class="crew-actions">
             <button class="btn btn--outline btn--small" type="button" id="btn-add-crew">
@@ -1621,6 +1662,10 @@ html[dir="rtl"] .ticket-label { letter-spacing: 0.04em; }
      {en:..., ar:...} so the state machine can resolve them per language.
      --------------------------------------------------------------------- */
   var COPY = {
+    lightTheme: ['Light mode', 'الوضع الفاتح'],
+    darkTheme: ['Dark mode', 'الوضع الغامق'],
+    demoFill: ['Fill with demo data', 'املأ ببيانات تجريبية'],
+    demoFillHint: ['Fills empty fields with fictional details only. Sign and accept the waiver yourself.', 'هنملا الخانات الفاضية ببيانات وهمية للديمو بس. التوقيع والموافقة عليك إنت.'],
     skip: ['Skip to booking content', 'روح لتفاصيل الحجز'],
     conceptTag: ['Concept preview · Flight to memory', 'نسخة تجريبية · رحلة ماتتنسيش'],
     simTag: ['Simulated booking · no payment taken', 'حجز تجريبي · من غير دفع حقيقي'],
@@ -1942,8 +1987,66 @@ html[dir="rtl"] .ticket-label { letter-spacing: 0.04em; }
 
   function setInvalid(input, invalid) {
     if (!input) { return; }
-    if (invalid) { input.classList.add('is-invalid'); }
-    else { input.classList.remove('is-invalid'); }
+    input.classList.toggle('is-invalid', invalid);
+    input.setAttribute('aria-invalid', String(invalid));
+  }
+
+  function fieldError(input) {
+    var key = input.getAttribute('data-f') || input.id.replace('lead-', '');
+    var value = input.value.trim();
+    if (key === 'name') { return value.length < 2 ? 'errName' : ''; }
+    if (key === 'age') { return !value || Number(value) < 14 ? 'errAge' : ''; }
+    if (key === 'weight') { return !value || !isFinite(Number(value)) || Number(value) <= 0 ? 'errWeight' : ''; }
+    if (key === 'email') { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? '' : 'errEmail'; }
+    if (input.id === 'lead-phone') { return value.replace(/\D/g, '').length < 8 ? 'errPhone' : ''; }
+    return '';
+  }
+
+  var fieldErrorId = 0;
+  function validateField(input) {
+    var key = fieldError(input);
+    setInvalid(input, !!key);
+    var field = input.closest('.field');
+    if (!field) { return; }
+    var msg = field.querySelector('.field-error');
+    if (!msg && key) {
+      msg = document.createElement('span');
+      msg.className = 'field-error';
+      msg.id = 'field-error-' + (++fieldErrorId);
+      field.appendChild(msg);
+      input.setAttribute('aria-describedby', msg.id);
+    }
+    if (msg) { msg.textContent = key ? t(key) : ''; msg.hidden = !key; }
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    var button = $('#theme-toggle');
+    button.setAttribute('data-i18n', theme === 'dark' ? 'lightTheme' : 'darkTheme');
+    button.textContent = t(button.getAttribute('data-i18n'));
+    button.setAttribute('aria-pressed', String(theme === 'light'));
+    try { localStorage.setItem('sp-theme', theme); } catch (e) { /* optional persistence */ }
+  }
+
+  function fillDemoDetails() {
+    ensureCrew();
+    state.crew.forEach(function (member, index) {
+      if (!String(member.name).trim()) { member.name = lang ? 'مشارك تجريبي ' + (index + 1) : 'Demo Jumper ' + (index + 1); }
+      if (!member.age) { member.age = '28'; }
+      if (!member.weight) { member.weight = '75'; }
+    });
+    renderCrew();
+    var values = { name: lang ? 'صاحب الحجز التجريبي' : 'Demo Booker', email: 'demo@example.com', phone: '00000000000' };
+    Object.keys(values).forEach(function (key) {
+      var input = $('#lead-' + key);
+      if (!input.value.trim()) {
+        input.value = values[key];
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+    $$('#scene-4 .input').forEach(validateField);
+    updateNav();
   }
 
   var reducedMotion = false;
@@ -2119,7 +2222,7 @@ html[dir="rtl"] .ticket-label { letter-spacing: 0.04em; }
     return state.crew.every(function (c) {
       var ageOk = c.age !== null && c.age !== '' && Number(c.age) >= 14;
       var nameOk = String(c.name || '').trim().length >= 2;
-      var weightOk = c.weight !== null && c.weight !== '' && !isNaN(Number(c.weight));
+      var weightOk = c.weight !== null && c.weight !== '' && isFinite(Number(c.weight)) && Number(c.weight) > 0;
       return ageOk && nameOk && weightOk;
     });
   }
@@ -2199,6 +2302,11 @@ html[dir="rtl"] .ticket-label { letter-spacing: 0.04em; }
     if (state.scene >= 8) { return; }
     var gate = canEnter(state.scene + 1);
     if (!gate.ok) {
+      if (state.scene === 4) {
+        $$('#scene-4 .input').forEach(validateField);
+        var firstInvalid = $('#scene-4 .input.is-invalid');
+        if (firstInvalid) { firstInvalid.focus(); }
+      }
       updateNav();
       return;
     }
@@ -2241,7 +2349,7 @@ html[dir="rtl"] .ticket-label { letter-spacing: 0.04em; }
       head.className = 'crew-head';
       var idxEl = document.createElement('span');
       idxEl.className = 'crew-idx';
-      idxEl.textContent = 'Jumper ' + (idx + 1);
+      idxEl.textContent = (lang ? 'مشارك ' : 'Jumper ') + (idx + 1);
       head.appendChild(idxEl);
 
       var tag = document.createElement('span');
@@ -2653,6 +2761,16 @@ html[dir="rtl"] .ticket-label { letter-spacing: 0.04em; }
      wire everything
      --------------------------------------------------------------------- */
   function bind() {
+    on($('#theme-toggle'), 'click', function () {
+      applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+    });
+    on($('#demo-fill'), 'click', fillDemoDetails);
+    on($('#scene-4'), 'focusout', function (e) {
+      if (e.target.matches('.input')) { validateField(e.target); }
+    });
+    on($('#scene-4'), 'input', function (e) {
+      if (e.target.matches('.input')) { validateField(e.target); }
+    });
     /* next / back / rail */
     on($('#btn-next'), 'click', goNext);
     on($('#btn-back'), 'click', goBack);
@@ -2744,6 +2862,9 @@ html[dir="rtl"] .ticket-label { letter-spacing: 0.04em; }
      --------------------------------------------------------------------- */
   function boot() {
     initLang();
+    var theme = 'dark';
+    try { theme = localStorage.getItem('sp-theme') === 'light' ? 'light' : 'dark'; } catch (e) { /* default */ }
+    applyTheme(theme);
     bind();
     initSignature();
     ensureCrew();
