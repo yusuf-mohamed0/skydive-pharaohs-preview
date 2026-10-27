@@ -1230,7 +1230,7 @@ html[dir="rtl"] .ticket-label { letter-spacing: 0.04em; }
         <div class="crew-wrap reveal">
           <div class="demo-fill">
             <button id="demo-fill" type="button" class="btn btn--outline btn--small" data-i18n="demoFill">Fill with demo data</button>
-            <p class="fineprint" data-i18n="demoFillHint">Fills empty fields with fictional details only. Sign and accept the waiver yourself.</p>
+            <p class="fineprint" data-i18n="demoFillHint">Demo only: fills empty details, adds a sample signature and checks the demo waiver consent. The optional document can stay empty. This is not a real signature or consent.</p>
           </div>
           <div class="crew-list" id="crew-list"></div>
           <div class="crew-actions">
@@ -1665,7 +1665,7 @@ html[dir="rtl"] .ticket-label { letter-spacing: 0.04em; }
     lightTheme: ['Light mode', 'الوضع الفاتح'],
     darkTheme: ['Dark mode', 'الوضع الغامق'],
     demoFill: ['Fill with demo data', 'املأ ببيانات تجريبية'],
-    demoFillHint: ['Fills empty fields with fictional details only. Sign and accept the waiver yourself.', 'هنملا الخانات الفاضية ببيانات وهمية للديمو بس. التوقيع والموافقة عليك إنت.'],
+    demoFillHint: ['Demo only: fills empty details, adds a sample signature and checks the demo waiver consent. The optional document can stay empty. This is not a real signature or consent.', 'للديمو بس: هنملا الخانات الفاضية ونضيف توقيع وهمي ونعلّم على الموافقة التجريبية. المستند الاختياري ممكن يفضل فاضي. ده مش توقيع أو موافقة حقيقية.'],
     skip: ['Skip to booking content', 'روح لتفاصيل الحجز'],
     conceptTag: ['Concept preview · Flight to memory', 'نسخة تجريبية · رحلة ماتتنسيش'],
     simTag: ['Simulated booking · no payment taken', 'حجز تجريبي · من غير دفع حقيقي'],
@@ -2045,6 +2045,15 @@ html[dir="rtl"] .ticket-label { letter-spacing: 0.04em; }
         input.dispatchEvent(new Event('input', { bubbles: true }));
       }
     });
+    var signName = $('#sign-name');
+    if (!signName.value.trim()) {
+      signName.value = state.lead.name || values.name;
+      signName.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    if (!state.signed && window.__spSign) { window.__spSign(); }
+    var consent = $('#consent-waiver');
+    consent.checked = true;
+    consent.dispatchEvent(new Event('change', { bubbles: true }));
     $$('#scene-4 .input').forEach(validateField);
     updateNav();
   }
